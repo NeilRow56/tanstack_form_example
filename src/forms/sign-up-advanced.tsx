@@ -1,10 +1,11 @@
-"use client";
+// "use client";
 
 // import { useState } from "react";
 import { useActionState } from "react";
 import { mergeForm, useForm, useTransform } from "@tanstack/react-form";
 import { initialFormState } from "@tanstack/react-form/nextjs";
 import { formOpts } from "../lib/shared-code";
+import { z } from "zod";
 
 // interface RegisterFormProps {
 //   firstName: string;
@@ -20,23 +21,63 @@ import { formOpts } from "../lib/shared-code";
 // }
 
 export const RegisterForm: React.FC = () => {
-  //   const [formData, setFormData] = useState<RegisterFormProps>({
-  //     username: "",
-  //     email: "",
-  //     firstName: "",
-  //     lastName: "",
-  //     age: 0,
-  //     birthdate: "",
-  //     isMarried: false,
-  //     nationality: "canada",
-  //     password: "",
-  //     confirm_password: "",
-  //   });
+  // interface RegisterFormValues {
+  //   username: string;
+  //   email: string;
+  //   firstName: string;
+  //   lastName: string;
+  //   age: number;
+  //   birthdate: string;
+  //   isMarried: boolean;
+  //   nationality: string;
+  //   password: string;
+  //   confirm_password: string;
+  // }
+
+  const registerSchema = z
+    .object({
+      username: z.string().min(1, "Username is required"),
+      email: z.string().email("Please enter a valid email"),
+      firstName: z.string().min(1, "First name is required"),
+      lastName: z.string().min(1, "Last name is required"),
+      age: z.number().min(18, "To register you must be 18 or over"),
+      birthdate: z.string().nonempty("Birthdate is required"),
+      isMarried: z.boolean(),
+      nationality: z.enum(["canada", "usa", "india", "brazil"], {
+        errorMap: () => ({ message: "Please select a nationality" }),
+      }),
+      password: z.string().min(8, "Password must be a minimum of 8 characters"),
+      confirm_password: z.string(),
+    })
+    .refine((data) => data.password === data.confirm_password, {
+      message: "Passwords do not match",
+      path: ["confirm_password"],
+    });
+
+  type Register = z.infer<typeof registerSchema>;
 
   const form = useForm({
-    ...formOpts,
-    onSubmit: ({ value }) => {
+    defaultValues: {
+      username: "",
+      email: "",
+      firstName: "",
+      lastName: "",
+      age: 0,
+      birthdate: "",
+      isMarried: false,
+      nationality: "canada",
+      password: "",
+      confirm_password: "",
+    },
+
+    onSubmit: async ({ value }) => {
       alert(JSON.stringify(value, null, 2));
+    },
+
+    // Use the zod schema to validate the form on every change
+
+    validators: {
+      onChange: registerSchema,
     },
   });
   //   const handleChange = (
@@ -73,14 +114,7 @@ export const RegisterForm: React.FC = () => {
 
         {/* Username */}
 
-        <form.Field
-          name="username"
-          validators={{
-            onChange: ({ value }) => {
-              return value.trim() === "" ? "Username is required" : undefined;
-            },
-          }}
-        >
+        <form.Field name="username">
           {(field) => (
             <div className="flex flex-col mb-2">
               <label htmlFor="firstName">Username</label>
@@ -101,18 +135,7 @@ export const RegisterForm: React.FC = () => {
         </form.Field>
 
         {/* Email */}
-        <form.Field
-          name="email"
-          validators={{
-            onChange: ({ value }) => {
-              const emailRegex =
-                /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
-              return !emailRegex.test(value)
-                ? "Please enter a valid email address"
-                : undefined;
-            },
-          }}
-        >
+        <form.Field name="email">
           {(field) => (
             <div className="flex flex-col mb-2">
               <label htmlFor="firstName">Email</label>
@@ -133,14 +156,7 @@ export const RegisterForm: React.FC = () => {
         </form.Field>
 
         {/* First Name */}
-        <form.Field
-          name="firstName"
-          validators={{
-            onChange: ({ value }) => {
-              return value.trim() === "" ? "First name is required" : undefined;
-            },
-          }}
-        >
+        <form.Field name="firstName">
           {(field) => (
             <div className="flex flex-col mb-2">
               <label htmlFor="firstName">First Name</label>
@@ -161,14 +177,7 @@ export const RegisterForm: React.FC = () => {
         </form.Field>
 
         {/* Last Name */}
-        <form.Field
-          name="lastName"
-          validators={{
-            onChange: ({ value }) => {
-              return value.trim() === "" ? "Last name is required" : undefined;
-            },
-          }}
-        >
+        <form.Field name="lastName">
           {(field) => (
             <div className="flex flex-col mb-2">
               <label htmlFor="lastName">Last Name</label>
@@ -189,15 +198,7 @@ export const RegisterForm: React.FC = () => {
         </form.Field>
 
         {/* Age */}
-        <form.Field
-          name="age"
-          validators={{
-            onChange: ({ value }) =>
-              value < 8
-                ? "Client validation: You must be at least 8"
-                : undefined,
-          }}
-        >
+        <form.Field name="age">
           {(field) => {
             return (
               <div className="flex flex-col mb-2">
@@ -220,14 +221,7 @@ export const RegisterForm: React.FC = () => {
         </form.Field>
 
         {/* Birthdate */}
-        <form.Field
-          name="birthdate"
-          validators={{
-            onChange: ({ value }) => {
-              return value === "" ? "Birthdate is required" : undefined;
-            },
-          }}
-        >
+        <form.Field name="birthdate">
           {(field) => (
             <div className="flex flex-col mb-2">
               <label htmlFor="birthdate">Birthdate</label>
@@ -248,12 +242,7 @@ export const RegisterForm: React.FC = () => {
         </form.Field>
 
         {/* is Married */}
-        <form.Field
-          name="isMarried"
-          validators={{
-            onChange: ({}) => undefined,
-          }}
-        >
+        <form.Field name="isMarried">
           {(field) => (
             <div className="flex  mb-2">
               <label htmlFor="isMarried">
@@ -272,13 +261,7 @@ export const RegisterForm: React.FC = () => {
 
         {/* Nationality */}
 
-        <form.Field
-          name="nationality"
-          validators={{
-            onChange: ({ value }) =>
-              value === "" ? "Please select a nationality" : undefined,
-          }}
-        >
+        <form.Field name="nationality">
           {(field) => (
             <div className="flex flex-col mb-2">
               <label htmlFor="nationality">Nationality</label>
@@ -304,16 +287,7 @@ export const RegisterForm: React.FC = () => {
         </form.Field>
 
         {/* Password */}
-        <form.Field
-          name="password"
-          validators={{
-            onChange: ({ value }) => {
-              return value.length < 8
-                ? "Password must be at least 8 characters"
-                : undefined;
-            },
-          }}
-        >
+        <form.Field name="password">
           {(field) => (
             <div className="flex flex-col mb-2">
               <label htmlFor="password">Password</label>
@@ -334,16 +308,7 @@ export const RegisterForm: React.FC = () => {
         </form.Field>
 
         {/* Confirm Password */}
-        <form.Field
-          name="confirm_password"
-          validators={{
-            onChangeListenTo: ["password"],
-            onChange: ({ value, fieldApi }) =>
-              value !== fieldApi.form.getFieldValue("password")
-                ? "Passwords do not match"
-                : undefined,
-          }}
-        >
+        <form.Field name="confirm_password">
           {(field) => (
             <div className="flex flex-col mb-2">
               <label htmlFor="confirm_password">Confirm password</label>
